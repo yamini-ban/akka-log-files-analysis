@@ -11,7 +11,7 @@ Q1. There is a company called XYZ that processes various log files from the oper
 		2. Average errors per file
 
 
-	B. Write a software program using the Akka actor model that can read from the directory with embarrassingly parallel and asynchronous 			fashion and provide analysis ASAP. (N number of Akka actors are allowed)
+	B. Write a software program using the Akka actor model that can read from the directory with embarrassingly parallel and asynchronous fashion and provide analysis ASAP. (N number of Akka actors are allowed)
 
 
 	C. Analyze the performance using visual VM and provide performance and memory comparison between the above approaches. 
