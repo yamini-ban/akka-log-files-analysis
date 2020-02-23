@@ -1,2 +1,19 @@
+# intellij idea
+*.log
+*.iml
+*.ipr
+*.iws
+.idea
+
+#general
 *.class
+
+# sbt
+bin/
+project/project/
+project/target
+target/
+build/
+
+out
 *.log
