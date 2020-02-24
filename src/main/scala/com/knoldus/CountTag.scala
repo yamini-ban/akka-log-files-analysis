@@ -40,24 +40,21 @@ class CountTag extends Actor with ActorLogging{
     }
   }
 
-  def countAverageTagsPerFileInADirectory(dirPath: String, tag1: String = "error:",
-                                          tag2: String = "warn:", tag3:String = "info:"): (Int, Int, Int) = {
-    val listOfCountOfTagPerFile = countTagsInAllFilesInADirectory(dirPath, tag1, tag2, tag3)
+  def countAverageTagPerFileInADirectory(dirPath: String, tag1: String = "error") = {
+    val listOfCountOfTagPerFile = countTagsInAllFilesInADirectory(dirPath, tag1, "warn", "info")
     val lengthOfList = listOfCountOfTagPerFile.length
-    val total = listOfCountOfTagPerFile.foldLeft((0, 0, 0))((result, countPerFile) => {
-      val totalErrors = result._1 + countPerFile.countOfErrors
-      val totalWarnings = result._2 + countPerFile.countOfWarnings
-      val totalInfo = result._3 + countPerFile.countOfInfo
-      (totalErrors, totalWarnings, totalInfo)
+    val total = listOfCountOfTagPerFile.foldLeft(0)((result, countPerFile) => {
+      val totalErrors = result + countPerFile.countOfErrors
+      totalErrors
     })
-    (total._1 / lengthOfList, total._2 / lengthOfList, total._3 / lengthOfList)
+    total / lengthOfList
   }
 
   override def receive = {
-    case "hello" => {
-      val result = countAverageTagsPerFileInADirectory("logs", "error", "warn", "info")
-//      sender() ! result
-      println(result)
+    case "_averageCount" => {
+      val result = countAverageTagPerFileInADirectory("logs", "error")
+      sender() ! result
+//      println(result)
     }
     case msg => println("xhs")
   }
