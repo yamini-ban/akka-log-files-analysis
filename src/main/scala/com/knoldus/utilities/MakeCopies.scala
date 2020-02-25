@@ -5,12 +5,12 @@ import java.io.File
 import org.apache.commons.io.FileUtils
 
 object MakeCopies {
-  def make(fileName: String, numberOfCopies: Int = 10): List[String] = {
+  def make(fileName: String, numberOfCopies: Int = ActorConfig.numberOfLogFileToBeCreated, dirName: String = "logs"): List[String] = {
     val file = new File(fileName)
     if (file.exists && file.isFile) {
-      new File("logs").mkdir
+      new File(dirName).mkdir
       val newFileNames = for (i <- 1 to numberOfCopies) yield {
-        val tempFile = new File(s"logs/${file.getName}$i")
+        val tempFile = new File(s"$dirName/${file.getName}$i")
         FileUtils.copyFile(file, tempFile)
         tempFile.getAbsolutePath
       }

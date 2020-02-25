@@ -11,4 +11,3 @@ libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % "2.6.3"
 libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.6.3" % Test
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
-
