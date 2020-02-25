@@ -1,4 +1,4 @@
-package com.knoldus
+package com.knoldus.utilities
 
 import java.io.File
 

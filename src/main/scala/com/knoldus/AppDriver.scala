@@ -4,7 +4,9 @@ import java.time.Instant
 
 import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
+import akka.routing.RoundRobinPool
 import akka.util.Timeout
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -13,19 +15,25 @@ import scala.language.postfixOps
 
 
 object AppDriver extends App {
+
+  val logger = LoggerFactory.getLogger(this.getClass)
+
   val system = ActorSystem("AnalyseLogs")
   val prop = Props[CountTag]
-  val actor = system.actorOf(prop, "GetAverageCount.")
+//  val actor = system.actorOf(prop, "GetAverageCount")
+  val actor = system.actorOf(RoundRobinPool(3).props(Props[CountTag].withDispatcher("count-tag-dispatcher")), "GetAverageCount.")
 
-  implicit val timeout: Timeout = 5.seconds
-  println(actor.path)
+  logger.info(system.dispatcher.toString)
+
+  implicit val timeout: Timeout = 30.seconds
+  val result = actor ? ("logs", "error")
+//  val result = actor ? TagsCountInAFile("logs")
   val start = Instant.now()
-  val result = actor ? ("logs", "warn")
-  val intResult = result.recover({
+  val listResult = result.mapTo[Double].recover({
     case _: Exception => Future.failed(new Exception("result failed"))
   })
-  Thread.sleep(5000)
-  println(result)
+  Thread.sleep(15000)
+  println("Main Result ::::::: " + listResult)
   val end = Instant.now
-  println(end.getEpochSecond - start.getEpochSecond)
+  println("duration: " + (end.getEpochSecond - start.getEpochSecond))
 }

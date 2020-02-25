@@ -2,11 +2,16 @@ package com.knoldus
 
 import java.io.File
 
-import akka.actor.{Actor, ActorLogging}
-import com.knoldus.MakeCopies.make
-import com.knoldus.model.{CountOfTags, CustomException, DirName, TagsCountInAFile}
+import akka.actor.{Actor, ActorLogging, Props}
+import akka.pattern.ask
+import akka.util.Timeout
+import com.knoldus.model._
+import com.knoldus.utilities.Count
+import com.knoldus.utilities.MakeCopies.make
 
-import scala.io.Source
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
 class CountTag extends Actor with ActorLogging {
@@ -16,66 +21,89 @@ class CountTag extends Actor with ActorLogging {
   }
 
   override def receive: Receive = {
-    case file: File => //log.info(CountTags.count(file,("error", "warn", "info")).toString)
-      sender ! count(file, ("error", "warn", "info"))
-    case dirname: DirName => val files = listAllFiles(dirname.path)
-      sender ! files.map(file => file.getName)
+    case file: File =>
+            log.info(self.path.toString)
+            sender ! Count.count(file, ("error", "warn", "info"))
+    case dirname: DirName =>
+            log.info(self.path.toString)
+            val files = listAllFiles(dirname.path)
+            sender ! files.map(file => file.getName)
     case countTagsForAllFiles: TagsCountInAFile =>
-      val listOfFiles = listAllFiles(countTagsForAllFiles.dirname)
-      sender ! listOfFiles.map(file => count(file, ("error", "warn", "info")))
-
-    case (dir:String, tag:String) => sender ! countAverageTagPerFileInADirectory(dir, tag)
+//            log.info(self.path.toString)
+            val result = countTagsInAllFilesInADirectory(
+              countTagsForAllFiles.dirname,
+              countTagsForAllFiles.tag1,
+              countTagsForAllFiles.tag2,
+              countTagsForAllFiles.tag3
+            )
+             log.info(result.map(list => sender ! list).toString)
+    case (dir:String, tag:String) =>
+            log.info(context.dispatcher.toString)
+            val result = countAverageTagPerFileInADirectory(dir, tag)
+            log.info(result.map(res => {
+              sender ! res
+              res
+            }).toString)
     case _ => log.info("default case met.")
-      sender ! "default case met"
+            sender ! "default case met"
   }
 
   /**
-   * This method count the frequency of all the three tags given as a tuple
-   *
-   * @param file which is to be read for the frequency of tags
-   * @param tag  which is to be searched
-   * @return object of case class CountOfTags
+   * This method list all the file in a directory
+   * @param dirPath to fetch all the files
+   * @return list of all the files
    */
-  def count(file: File, tag: (String, String, String)): CountOfTags = {
-    if (file.isFile) {
-      val source = Source.fromFile(file)
-      val content = source.getLines
-      val occurrenceOfTagInFile = content.foldLeft((0, 0, 0))((countOfTag, lineReadFromFile) => {
-        if (lineReadFromFile.contains(tag._1)) (countOfTag._1 + 1, countOfTag._2, countOfTag._3)
-        else if (lineReadFromFile.contains(tag._2)) (countOfTag._1, countOfTag._2 + 1, countOfTag._3)
-        else if (lineReadFromFile.contains(tag._3)) (countOfTag._1, countOfTag._2, countOfTag._3 + 1)
-        else countOfTag
-      })
-      CountOfTags(file.getPath, occurrenceOfTagInFile._1, occurrenceOfTagInFile._2, occurrenceOfTagInFile._3)
-    }
-    else {
-      CountOfTags("", 0, 0, 0)
-    }
-  }
-
   def listAllFiles(dirPath: String): List[File] = {
     val directory = new File(dirPath)
     directory.listFiles.filter(file => file.isFile).toList
   }
 
-  def countAverageTagPerFileInADirectory(dirPath: String, tag1: String = "error:"): Int = {
-    val listOfCountOfTagPerFile = countTagsInAllFilesInADirectory(dirPath, tag1, "warn", "info")
-    val lengthOfList = listOfCountOfTagPerFile.length
-    val total = listOfCountOfTagPerFile.foldLeft(0)((result, countPerFile) => {
-      val totalErrors = result + countPerFile.countOfErrors
-      totalErrors
-    })
-    total / lengthOfList
+  /**
+   * This method counts average frequency of given tag in a file
+   * @param dirPath path of directory in which file lies
+   * @param tag to search for frequency
+   * @return average count
+   */
+  def countAverageTagPerFileInADirectory(dirPath: String, tag: String = "error:"): Future[Double] = {
+    val listOfCountOfTagPerFile = countTagsInAllFilesInADirectory(dirPath, tag, "warn", "info")
+    listOfCountOfTagPerFile.recover{
+      case _:Exception => -1
+    }
+    for (list <- listOfCountOfTagPerFile) yield {
+      val lengthOfList = list.length
+      val total = list.foldLeft(0)((result, countPerFile) => {
+        val totalErrors = result + countPerFile.countOfErrors
+//        log.info(totalErrors.toString)
+        totalErrors
+      })
+      log.info((total / lengthOfList).toString)
+      (total / lengthOfList).toDouble
+    }
   }
 
+  /**
+   * Counts tags frequency in all the file in a directory.
+   * @param dirPath directory path.
+   * @param tag1 to search for.
+   * @param tag2 to search for.
+   * @param tag3 to search for.
+   * @return list of case class CountOfTags which holds file name and count of each tag.
+   */
   def countTagsInAllFilesInADirectory(dirPath: String, tag1: String = "error:",
-                                      tag2: String = "warn:", tag3: String = "info:"): List[CountOfTags] = {
+                                      tag2: String = "warn:", tag3: String = "info:"): Future[List[CountOfTags]] = {
     val directory = new File(dirPath)
     if (directory.isDirectory && directory.exists) {
       val content = directory.listFiles.filter(file => file.isFile).toList
-      content.map {
-        file => count(file, (tag1, tag2, tag3))
-      }
+      Future.sequence(content.map {
+        file => implicit val timeout = Timeout(1 second)
+//          val result = context.actorOf(RoundRobinPool(1).props(Props[ChildCountTag].withDispatcher("child-count-tag-dispatcher"))) ? file
+          val result = context.actorOf(Props[ChildCountTag]) ? file
+          val count = result.mapTo[CountOfTags].recover{
+            case exception: Exception => CountOfTags("", 0, 0, 0)
+          }
+          Thread.sleep(1*1000)
+          count
+      })
     }
     else {
       throw new CustomException("Directory does not exist.")
