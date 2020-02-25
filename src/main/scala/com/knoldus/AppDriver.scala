@@ -1,26 +1,31 @@
 package com.knoldus
 
+import java.time.Instant
+
 import akka.actor.{ActorSystem, Props}
-import akka.util.Timeout
 import akka.pattern.ask
+import akka.util.Timeout
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-//import com.knoldus.CountTag.{countAverageTagsPerFileInADirectory, countTagsInAllFilesInADirectory}
 
 object AppDriver extends App {
-//  val a = make("src/main/scala/com/knoldus/browser.log")
-//  val b = countTagsInAllFilesInADirectory("logs", "error", "warn", "info")
-//  val c = countAverageTagsPerFileInADirectory("logs", "error", "warn", "info")
   val system = ActorSystem("AnalyseLogs")
   val prop = Props[CountTag]
-  val actor = system.actorOf(prop)
+  val actor = system.actorOf(prop, "GetAverageCount.")
 
-  implicit val timeout: Timeout = Timeout(5 second)
+  implicit val timeout: Timeout = 5.seconds
   println(actor.path)
-  val result = actor ? "_averageCount"
-//  actor ! "_averageCount"
-    println(result.mapTo[Int])
-  println(actor)
-  ////  system.stop(actor)
+  val start = Instant.now()
+  val result = actor ? ("logs", "warn")
+  val intResult = result.recover({
+    case _: Exception => Future.failed(new Exception("result failed"))
+  })
+  Thread.sleep(5000)
+  println(result)
+  val end = Instant.now
+  println(end.getEpochSecond - start.getEpochSecond)
 }
