@@ -4,6 +4,7 @@ import java.io.File
 
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
+import akka.routing.RoundRobinPool
 import akka.util.Timeout
 import com.knoldus.model._
 import com.knoldus.utilities.Count
@@ -29,7 +30,7 @@ class CountTag extends Actor with ActorLogging {
             val files = listAllFiles(dirname.path)
             sender ! files.map(file => file.getName)
     case countTagsForAllFiles: TagsCountInAFile =>
-//            log.info(self.path.toString)
+            log.info(self.path.toString)
             val result = countTagsInAllFilesInADirectory(
               countTagsForAllFiles.dirname,
               countTagsForAllFiles.tag1,
@@ -39,6 +40,8 @@ class CountTag extends Actor with ActorLogging {
              log.info(result.map(list => sender ! list).toString)
     case (dir:String, tag:String) =>
             log.info(context.dispatcher.toString)
+            log.info("Control is here......................................................")
+            log.info("Thread......." + Thread.currentThread().getName)
             val result = countAverageTagPerFileInADirectory(dir, tag)
             log.info(result.map(res => {
               sender ! res
@@ -73,7 +76,6 @@ class CountTag extends Actor with ActorLogging {
       val lengthOfList = list.length
       val total = list.foldLeft(0)((result, countPerFile) => {
         val totalErrors = result + countPerFile.countOfErrors
-//        log.info(totalErrors.toString)
         totalErrors
       })
       log.info((total / lengthOfList).toString)
@@ -93,11 +95,11 @@ class CountTag extends Actor with ActorLogging {
                                       tag2: String = "warn:", tag3: String = "info:"): Future[List[CountOfTags]] = {
     val directory = new File(dirPath)
     if (directory.isDirectory && directory.exists) {
+      val router = context.actorOf(RoundRobinPool(3).props(Props[ChildCountTag].withDispatcher("child-count-tag-dispatcher")))
       val content = directory.listFiles.filter(file => file.isFile).toList
       Future.sequence(content.map {
-        file => implicit val timeout = Timeout(1 second)
-//          val result = context.actorOf(RoundRobinPool(1).props(Props[ChildCountTag].withDispatcher("child-count-tag-dispatcher"))) ? file
-          val result = context.actorOf(Props[ChildCountTag]) ? file
+        file => implicit val timeout = Timeout(3 second)
+          val result = router ? file
           val count = result.mapTo[CountOfTags].recover{
             case exception: Exception => CountOfTags("", 0, 0, 0)
           }

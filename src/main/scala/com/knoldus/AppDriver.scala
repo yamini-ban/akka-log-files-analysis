@@ -4,12 +4,10 @@ import java.time.Instant
 
 import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
-import akka.routing.RoundRobinPool
 import akka.util.Timeout
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -20,8 +18,8 @@ object AppDriver extends App {
 
   val system = ActorSystem("AnalyseLogs")
   val prop = Props[CountTag]
-//  val actor = system.actorOf(prop, "GetAverageCount")
-  val actor = system.actorOf(RoundRobinPool(3).props(Props[CountTag].withDispatcher("count-tag-dispatcher")), "GetAverageCount.")
+  val actor = system.actorOf(prop, "GetAverageCount")
+//  val actor = system.actorOf(RoundRobinPool(3).props(Props[CountTag].withDispatcher("count-tag-dispatcher")), "GetAverageCount.")
 
   logger.info(system.dispatcher.toString)
 
@@ -30,7 +28,7 @@ object AppDriver extends App {
 //  val result = actor ? TagsCountInAFile("logs")
   val start = Instant.now()
   val listResult = result.mapTo[Double].recover({
-    case _: Exception => Future.failed(new Exception("result failed"))
+    case _: Exception => -1.toDouble
   })
   Thread.sleep(15000)
   println("Main Result ::::::: " + listResult)
