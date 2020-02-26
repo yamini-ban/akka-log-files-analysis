@@ -29,7 +29,7 @@ object Count {
       CountOfTags(file.getPath, occurrenceOfTagInFile._1, occurrenceOfTagInFile._2, occurrenceOfTagInFile._3)
     }
     else {
-      throw CustomException("Not a file")
+      throw new CustomException("Not a file")
     }
   }
 

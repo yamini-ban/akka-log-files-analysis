@@ -4,12 +4,11 @@ import java.io.File
 
 import akka.actor.SupervisorStrategy.{Restart, Resume}
 import akka.actor.{Actor, ActorLogging, OneForOneStrategy, Props}
-import akka.pattern.ask
+import akka.pattern.{AskTimeoutException, ask}
 import akka.routing.RoundRobinPool
 import akka.util.Timeout
 import com.knoldus.model._
 import com.knoldus.utilities.{ActorConfig, Count}
-import com.knoldus.utilities.MakeCopies.make
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -21,18 +20,21 @@ class Receiver extends Actor with ActorLogging {
 
   override val supervisorStrategy: OneForOneStrategy =
     OneForOneStrategy(ActorConfig.supervisorNumberOfRetries, 1.second) {
-      case _: CustomException => Resume
-      case _: java.io.IOException => Restart
+      case _: CustomException => log.info("-----------Custom case exception---------: ")
+        Resume
+      case _: AskTimeoutException => log.info("----------Ask exception----------")
+        Resume
+      case e: Exception => log.info("-----------default case exception---------: " + e)
+        Restart
     }
 
-  override def preStart: Unit = {
+    /*override def preStart: Unit = {
     make("src/main/scala/com/knoldus/browser.log")
-  }
+  }*/
 
   override def receive: Receive = {
     case Write(path) => val file = new File(path)
-      if (file.exists && file.isFile) {
-        val source = Source.fromFile(file)
+      if (file.exists && file.isFile) { val source = Source.fromFile(file)
         val content = source.getLines.toList
         content.foreach(log.info)
       }
@@ -115,8 +117,8 @@ class Receiver extends Actor with ActorLogging {
       val list = Future.sequence(content.map {
         file =>
           implicit val timeout: Timeout = 3.seconds
+          router ? 1 //for actor failure
           val result = router ? file
-          router ! 1 //for actor failure
           val count = result.mapTo[CountOfTags].recover {
             case _: Exception => CountOfTags("", 0, 0, 0)
           }
@@ -126,7 +128,7 @@ class Receiver extends Actor with ActorLogging {
       list
     }
     else {
-      throw CustomException("Directory do not exist!!!!")
+      throw new CustomException("Directory do not exist!!!!")
     }
   }
 

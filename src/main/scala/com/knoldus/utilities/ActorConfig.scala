@@ -5,16 +5,14 @@ import akka.actor.ActorSystem
 object ActorConfig {
   val system: ActorSystem = ActorSystem("AnalyseLogs")
 
-  val noOfChildActorInPool = 6
+  val noOfChildActorInPool = 3
 
-  val durationForChildSleep: Int = 2*1000
+  val durationForChildSleep: Int = 3*1000
 
-  val durationForActorInMain: Int = 5*1000
+  val durationForActorInMain: Int = 10*1000
 
   val numberOfLogFileToBeCreated: Int = 10
 
-  val supervisorNumberOfRetries: Int = 5
-
-
+  val supervisorNumberOfRetries: Int = 10
 
 }
