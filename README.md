@@ -1,19 +1,27 @@
-# akka-log-files-analysis
+# Assignment akka-log-files-analysis
 
-Q1. There is a company called XYZ that processes various log files from the operating system and provides analysis and recommendation on the basis of the data collected from the files. 
+Scala code for log analysis is in branch "feature/scala-implementation"
 
+Akka code for log analysis is in branch "feature/akka-implementation"
 
-	A. Write a program that can take directory path is input and read all the files and provide the following info:
+# Basic flow of primary actor (name = Receiver) of the akka code
 
-
-		1. Number of total errors, warning info
-
-		2. Average errors per file
-
-
-	B. Write a software program using the Akka actor model that can read from the directory with embarrassingly parallel and asynchronous 			fashion and provide analysis ASAP. (N number of Akka actors are allowed)
-
-
-	C. Analyze the performance using visual VM and provide performance and memory comparison between the above approaches. 
-
-
+    1. A message of type case class AverageCount => would create a router actor of 
+        Receiver with given number of child actors which would in turn work on every 
+        file in a directory. And it return average count of given tag per file in a 
+        directory 
+     
+    2. A message of type case class TagsCountMessage => would return the count of given
+        tags in an object of case class CountOfTags from the given file.
+    
+    3. A message of type case class DirNameMessage => would return the list of existing
+        file names in the given directory path else would return an empty list of String
+        
+    4. A message of type case class TotalTagCountMessage => returns the total count of
+        given tags from all the files in the directory by creating a router that would 
+        give the count of tags for each file.
+        
+    5. A message of type case class SchedulerMessage => would do what a scheduler wants.
+    
+    6. Anything other than above would get into default case.
+        
