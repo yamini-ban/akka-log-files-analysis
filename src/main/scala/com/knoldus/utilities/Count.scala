@@ -7,6 +7,14 @@ import com.knoldus.model.{CountOfTags, CustomException}
 import scala.io.Source
 
 object Count {
+  /**
+   * Counts occurrence of all the three tags in a file.
+   * @param file to be read.
+   * @param tag1 is the first tag
+   * @param tag2 is the second tag
+   * @param tag3 is the third tag
+   * @return object of case class
+   */
   def count(file: File, tag1: String, tag2: String, tag3: String): CountOfTags = {
     if (file.isFile) {
       val source = Source.fromFile(file)

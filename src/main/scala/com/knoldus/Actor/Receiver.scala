@@ -13,7 +13,6 @@ import com.knoldus.utilities.{ActorConfig, Count, ListAllFile}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.io.Source
 import scala.language.postfixOps
 
 class Receiver extends Actor with ActorLogging {
@@ -27,10 +26,6 @@ class Receiver extends Actor with ActorLogging {
       case e: Exception => log.info("-----------default case exception---------: " + e)
         Restart
     }
-
-    /*override def preStart: Unit = {
-    make("src/main/scala/com/knoldus/samplefiles/browser.log")
-  }*/
 
   override def receive: Receive = {
     case AverageCount(path, tag) => log.info(self.path + "****" + Thread.currentThread().getName)
@@ -51,15 +46,10 @@ class Receiver extends Actor with ActorLogging {
                             }
                           }
                           log.info(total.map(total => sender ! total).toString)
-    case SchedulerMessage(path) => log.info(self.path.toString + "....Default Case......." + Thread.currentThread().getName)
-                          val file = new File(path)
-                          if (file.exists && file.isFile) {
-                            val source = Source.fromFile(file)
-                            val content = source.getLines.toList
-                            content.foreach(log.info)
-                          } else {
-                            log.info("file does not exist....!!!...")
-                          }
+    case SchedulerMessage(path, tag) => log.info(self.path + "**Scheduler is active**" + Thread.currentThread().getName)
+                          val result = countAverageTagPerFileInADirectory(path, tag)
+                          log.info(result.map(res => { sender ! res
+                            log.info("(schedular case in receive)Average: " + res.toString)}).toString)
     case _ => log.info(self.path.toString + "....Default Case......." + Thread.currentThread().getName)
                           throw new CustomException("*Receivers default*")
   }
@@ -87,15 +77,6 @@ class Receiver extends Actor with ActorLogging {
     }
   }
 
-  /**
-   * Counts tags frequency in all the file in a directory.
-   *
-   * @param dirPath directory path.
-   * @param tag1    to search for.
-   * @param tag2    to search for.
-   * @param tag3    to search for.
-   * @return list of case class CountOfTags which holds file name and count of each tag.
-   */
   private def countTagsInAllFilesInADirectory(dirPath: String,tag1: String = "error:", tag2: String = "warn:",
                                       tag3: String = "info:"): Future[List[CountOfTags]] = {
     val directory = new File(dirPath)
@@ -107,7 +88,6 @@ class Receiver extends Actor with ActorLogging {
         file =>
           implicit val timeout: Timeout = 3.seconds
           val result = router ? TagsCountMessage(file.getAbsolutePath, tag1, tag2, tag3)
-//          router ? ActorConfig.invalidMessage //for actor failure
           val count = result.mapTo[CountOfTags].recover {
             case _: Exception => CountOfTags("", 0, 0, 0)
           }
