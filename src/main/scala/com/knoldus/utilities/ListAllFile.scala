@@ -10,6 +10,9 @@ object ListAllFile {
    */
   def listAllFiles(dirPath: String): List[File] = {
     val directory = new File(dirPath)
-    directory.listFiles.filter(file => file.isFile).toList
+    if (directory.exists) {
+      directory.listFiles.filter(file => file.isFile).toList
+    }
+    else List.empty[File]
   }
 }
