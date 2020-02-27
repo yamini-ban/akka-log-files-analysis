@@ -10,11 +10,11 @@ import scala.io.Source
 
 object CountTag {
 
-  def countAverageTagsPerFileInADirectory(dirPath: String, tag1: String = "error:"): Future[Double] = {
+  def countAverageTagsPerFileInADirectory(dirPath: String = CustomConfig.logsDirectoryName, tag1: String = "error:"): Future[Double] = {
     for (total <- countTotalTagsInAllFilesInADirectory(dirPath, tag1)) yield (total.totalErrors / total.noOfFiles).toDouble
   }
 
-  def countTotalTagsInAllFilesInADirectory(dirPath: String, tag1: String = "error:",
+  def countTotalTagsInAllFilesInADirectory(dirPath: String = CustomConfig.logsDirectoryName, tag1: String = "error:",
                                            tag2: String = "warn:", tag3: String = "info:"): Future[TotalTagsInDirectory] = Future {
     val directory = new File(dirPath)
     if (directory.isDirectory && directory.exists) {
