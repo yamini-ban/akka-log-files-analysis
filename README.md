@@ -24,4 +24,3 @@ Akka code for log analysis is in branch "feature/akka-implementation"
     5. A message of type case class SchedulerMessage => would do what a scheduler wants.
     
     6. Anything other than above would get into default case.
-        
