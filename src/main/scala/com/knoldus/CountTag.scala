@@ -9,11 +9,25 @@ import scala.concurrent.Future
 import scala.io.Source
 
 object CountTag {
-
+  /**
+   * This method counts average frequency of given tag in a file
+   *
+   * @param dirPath path of directory in which file lies
+   * @param tag1 is the tag to search for frequency
+   * @return average count
+   */
   def countAverageTagsPerFileInADirectory(dirPath: String = CustomConfig.logsDirectoryName, tag1: String = "error:"): Future[Double] = {
     for (total <- countTotalTagsInAllFilesInADirectory(dirPath, tag1)) yield (total.totalErrors / total.noOfFiles).toDouble
   }
 
+  /**
+   * Counts tags frequency in all the file in a directory.
+   * @param dirPath directory path.
+   * @param tag1    to search for.
+   * @param tag2    to search for.
+   * @param tag3    to search for.
+   * @return list of case class CountOfTags which holds file name and count of each tag.
+   */
   def countTotalTagsInAllFilesInADirectory(dirPath: String = CustomConfig.logsDirectoryName, tag1: String = "error:",
                                            tag2: String = "warn:", tag3: String = "info:"): Future[TotalTagsInDirectory] = Future {
     val directory = new File(dirPath)
@@ -34,6 +48,12 @@ object CountTag {
     }
   }
 
+  /**
+   * * Counts occurrence of all the three tags in a file.
+   * @param file file to be read.
+   * @param tag is the tuple of three tags
+   * @return object of case class
+   */
   def count(file: File, tag: (String, String, String)): CountOfTags = {
     if (file.isFile) {
       val source = Source.fromFile(file)
