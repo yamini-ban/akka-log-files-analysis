@@ -28,4 +28,20 @@ class CountTagSpec extends AsyncFlatSpec {
     assert(expectedResult == obtainedResult)
   }
 
+  it should "eventually raise an exception for invalid directory" in {
+    val obtainedResult = CountTag.countTotalTagsInAllFilesInADirectory("invalidDir/", "error").recover({
+      case _: CustomException => 0.toDouble
+    })
+    val expectedResult = 0
+    obtainedResult map { obtResult => assert(expectedResult == obtResult) }
+  }
+
+  it should "eventually return object of TotalTagsInDirectory with total count in a valid directory" in {
+    val obtainedResult = CountTag.countTotalTagsInAllFilesInADirectory("logs", "error").recover({
+      case _: CustomException => 0.toDouble
+    })
+    val expectedResult = CustomConfig.total
+    obtainedResult map { obtResult => assert(expectedResult == obtResult) }
+  }
+
 }
